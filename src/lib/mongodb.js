@@ -18,12 +18,34 @@ export default async function connectToDatabase() {
   }
 
   if (!cached.promise) {
-    // Reuse a single connection across hot reloads during local development.
-    cached.promise = mongoose.connect(mongodbUri, {
+    // Connection options optimized for MongoDB Atlas
+    let connectionOptions = {
       bufferCommands: false,
-    });
+    };
+
+    // Add Atlas-specific options if using Atlas
+    if (mongodbUri.includes('mongodb+srv://') || mongodbUri.includes('mongodb.net')) {
+      connectionOptions = {
+        ...connectionOptions,
+        serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+        socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+        maxPoolSize: 10, // Maintain up to 10 socket connections
+        serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+        socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+        family: 4, // Use IPv4, skip trying IPv6
+      };
+    }
+
+    // Reuse a single connection across hot reloads during local development.
+    cached.promise = mongoose.connect(mongodbUri, connectionOptions);
   }
 
-  cached.connection = await cached.promise;
-  return cached.connection;
+  try {
+    cached.connection = await cached.promise;
+    console.log("Connected to MongoDB successfully");
+    return cached.connection;
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+    throw error;
+  }
 }
