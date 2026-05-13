@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Voice2Action
 
-## Getting Started
+Voice2Action is a civic issue reporting app built with Next.js 16, React 19, Tailwind CSS 4, Leaflet, and MongoDB. Citizens can report local problems, vote on issues, view them on a live city map, and admins can monitor and resolve reports from a dashboard.
 
-First, run the development server:
+## Main Features
+
+- Home feed with issue search, category filters, map preview, and voting
+- Full city map with marker clustering, heatmap, filter controls, and issue detail panel
+- Report form with GPS lookup, manual map pin selection, image upload, and voice dictation
+- Admin dashboard for reviewing issues, filtering by status, and marking reports as resolved
+- Reverse geocoding and city-boundary validation for location accuracy
+
+## Routes
+
+- `/` citizen home feed
+- `/map` full interactive city map
+- `/report` issue submission form
+- `/admin` admin dashboard
+- `/api/issues` list and create issues
+- `/api/issues/[id]` update an issue
+- `/api/issues/[id]/vote` vote on an issue
+- `/api/location/reverse` reverse geocode coordinates
+
+## Local Development
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Start the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Open `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Verification
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Use these commands before shipping changes:
 
-## Learn More
+```bash
+npm run lint
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Notes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The app is currently configured around `Chhatrapati Sambhajinagar` in `src/lib/city-map.js`.
+- MongoDB defaults to `mongodb://127.0.0.1:27017/voice2action` unless `MONGODB_URI` is set.
+- `.design-ref/` is treated as a local design scratch/reference folder and is ignored by Git.
