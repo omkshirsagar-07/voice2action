@@ -115,7 +115,8 @@ export default function AddIssueModal({
                     };
                   });
                 }}
-                placeholder="Optional public image URL"
+                placeholder="Required public image URL"
+                required
                 className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white"
               />
             </label>

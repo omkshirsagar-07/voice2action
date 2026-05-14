@@ -63,6 +63,22 @@ function buildToast(id, title, message) {
   };
 }
 
+async function fetchWithTimeout(input, init = {}, timeoutMs = 7000) {
+  let controller = new AbortController();
+  let timeoutId = window.setTimeout(function abortRequest() {
+    controller.abort(new Error("Request timed out."));
+  }, timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 function getLocationTone(location) {
   if (!location) {
     return "bg-slate-100 text-slate-500";
@@ -126,7 +142,7 @@ export default function HomeClient() {
 
   async function requestIssues(cityKey) {
     let query = cityKey ? `?city=${encodeURIComponent(cityKey)}` : "";
-    let response = await fetch(`/api/issues${query}`, {
+    let response = await fetchWithTimeout(`/api/issues${query}`, {
       cache: "no-store",
     });
     let payload = await readJsonResponse(response);
@@ -180,35 +196,65 @@ export default function HomeClient() {
     let isActive = true;
 
     async function hydrateIssues() {
-      try {
-        let location = null;
+      let locationPromise = resolveBrowserLocation()
+        .then(function resolveLocation(location) {
+          if (!isActive) {
+            return null;
+          }
 
-        try {
-          location = await resolveBrowserLocation();
-        } catch (locationError) {
+          setViewerLocation(location);
+          setLocationStatus(
+            location.isApproximate
+              ? `Found ${location.label}. GPS is approximate, so the list may broaden if needed.`
+              : `Found ${location.label}.`
+          );
+
+          return location;
+        })
+        .catch(function handleLocationError(locationError) {
           if (isActive) {
             setLocationStatus(locationError.message);
           }
-        }
 
-        let payload = await requestIssues(location?.cityKey);
+          return null;
+        });
+
+      try {
+        let payload = await requestIssues();
 
         if (!isActive) {
           return;
         }
 
-        setViewerLocation(location);
-        updateLocationStatus(location, payload.meta);
         setIssues(payload.issues);
         setError("");
+        setIsLoading(false);
+
+        let location = await locationPromise;
+
+        if (!isActive || !location) {
+          return;
+        }
+
+        let localizedPayload = await requestIssues(location.cityKey);
+
+        if (!isActive) {
+          return;
+        }
+
+        setIssues(localizedPayload.issues);
+        updateLocationStatus(location, localizedPayload.meta);
       } catch (loadError) {
         if (!isActive) {
           return;
         }
 
         setError(loadError.message);
-      } finally {
+
+        let location = await locationPromise;
+
         if (isActive) {
+          updateLocationStatus(location, null);
           setIsLoading(false);
         }
       }

@@ -20,72 +20,113 @@ import {
   normalizeIssueStatus,
 } from "@/lib/issue-constants";
 
+import { sampleIssueData } from "@/lib/issue-sample-data";
 import { normalizeCityKey } from "@/lib/location-utils";
 import { reverseGeocodeWithProvider } from "@/lib/reverse-geocode";
 
 import Issue from "@/models/Issue";
 
+function buildIssueQueryFilters(searchParams) {
+  let requestedCity = searchParams.get("city") || searchParams.get("cityKey");
+  let requestedCategory = searchParams.get("category");
+  let requestedStatus = searchParams.get("status");
+  let requestedSearch = String(searchParams.get("search") || "").trim();
+  let cityKey = normalizeCityKey(requestedCity);
+  let query = cityKey ? { cityKey } : {};
+
+  if (requestedCategory && ISSUE_CATEGORIES.includes(requestedCategory)) {
+    query.category = requestedCategory;
+  }
+
+  if (requestedStatus && ISSUE_STATUSES.includes(requestedStatus)) {
+    query.status = requestedStatus;
+  }
+
+  if (requestedSearch) {
+    query.$or = [
+      {
+        title: {
+          $regex: requestedSearch,
+          $options: "i",
+        },
+      },
+      {
+        description: {
+          $regex: requestedSearch,
+          $options: "i",
+        },
+      },
+      {
+        city: {
+          $regex: requestedSearch,
+          $options: "i",
+        },
+      },
+    ];
+  }
+
+  return {
+    cityKey,
+    query,
+    requestedSearch,
+  };
+}
+
+function doesSampleIssueMatchQuery(issue, query, requestedSearch) {
+  if (query.cityKey && issue.cityKey !== query.cityKey) {
+    return false;
+  }
+
+  if (query.category && issue.category !== query.category) {
+    return false;
+  }
+
+  if (query.status && issue.status !== query.status) {
+    return false;
+  }
+
+  if (!requestedSearch) {
+    return true;
+  }
+
+  let searchValue = requestedSearch.toLowerCase();
+
+  return [issue.title, issue.description, issue.city].some(function hasMatch(value) {
+    return String(value || "").toLowerCase().includes(searchValue);
+  });
+}
+
+function sortIssuesByPriority(issues) {
+  return issues.slice().sort(function sortIssues(firstIssue, secondIssue) {
+    let priorityDifference = Number(secondIssue.priorityScore || 0) - Number(firstIssue.priorityScore || 0);
+
+    if (priorityDifference !== 0) {
+      return priorityDifference;
+    }
+
+    return new Date(secondIssue.createdAt).getTime() - new Date(firstIssue.createdAt).getTime();
+  });
+}
+
+function buildSampleIssuesResponse(query, requestedSearch) {
+  let filteredIssues = sampleIssueData.filter(function filterSampleIssue(issue) {
+    return doesSampleIssueMatchQuery(issue, query, requestedSearch);
+  });
+
+  return sortIssuesByPriority(filteredIssues).map(function mapSampleIssue(issue, index) {
+    return serializeIssue({
+      ...issue,
+      id: `sample-${index + 1}`,
+    });
+  });
+}
+
 export async function GET(request) {
+  let { searchParams } = new URL(request.url);
+  let { cityKey, query, requestedSearch } = buildIssueQueryFilters(searchParams);
+
   try {
     await connectToDatabase();
-
-    let { searchParams } = new URL(request.url);
-
-    let requestedCity =
-      searchParams.get("city") ||
-      searchParams.get("cityKey");
-
-    let requestedCategory =
-      searchParams.get("category");
-
-    let requestedStatus =
-      searchParams.get("status");
-
-    let requestedSearch = String(
-      searchParams.get("search") || ""
-    ).trim();
-
-    let cityKey = normalizeCityKey(requestedCity);
-
-    let query = cityKey ? { cityKey } : {};
-
-    if (
-      requestedCategory &&
-      ISSUE_CATEGORIES.includes(requestedCategory)
-    ) {
-      query.category = requestedCategory;
-    }
-
-    if (
-      requestedStatus &&
-      ISSUE_STATUSES.includes(requestedStatus)
-    ) {
-      query.status = requestedStatus;
-    }
-
-    if (requestedSearch) {
-      query.$or = [
-        {
-          title: {
-            $regex: requestedSearch,
-            $options: "i",
-          },
-        },
-        {
-          description: {
-            $regex: requestedSearch,
-            $options: "i",
-          },
-        },
-        {
-          city: {
-            $regex: requestedSearch,
-            $options: "i",
-          },
-        },
-      ];
-    }
-
     let issues = await Issue.find(query)
       .sort({
         priorityScore: -1,
@@ -93,24 +134,42 @@ export async function GET(request) {
       })
       .lean();
 
+    let usedFallback = false;
+
+    if (cityKey && issues.length === 0) {
+      usedFallback = true;
+      issues = await Issue.find({})
+        .sort({
+          priorityScore: -1,
+          createdAt: -1,
+        })
+        .lean();
+    }
+
     let serializedIssues = issues.map(function mapIssue(issue) {
       return serializeIssue(issue);
     });
 
     return Response.json({
       issues: serializedIssues,
+      meta: {
+        usedFallback,
+        source: "database",
+      },
     });
   } catch (error) {
     console.error("GET /api/issues ERROR:", error);
 
     return Response.json(
       {
-        message:
-          error.message || "Unable to load issues.",
+        issues: buildSampleIssuesResponse(query, requestedSearch),
+        meta: {
+          usedFallback: true,
+          source: "sample-data",
+          message: error.message || "Unable to load issues.",
+        },
       },
-      {
-        status: 500,
-      }
+      { status: 200 }
     );
   }
 }
@@ -147,7 +206,7 @@ export async function POST(request) {
       body.category || ""
     ).trim();
 
-    let image = String(body.image || "");
+    let image = String(body.image || "").trim();
 
     let lat = Number(body.lat);
 
@@ -180,6 +239,17 @@ export async function POST(request) {
       return Response.json(
         {
           message: "Description is required.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (!image) {
+      return Response.json(
+        {
+          message: "Photo is required.",
         },
         {
           status: 400,

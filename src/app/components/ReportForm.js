@@ -7,7 +7,6 @@ import { useEffect, useRef, useState } from "react";
 import AppShell from "./AppShell";
 import IssueLocationPicker from "./IssueLocationPicker";
 import ToastStack from "./ToastStack";
-import VoiceInput from "./VoiceInput";
 import { ISSUE_CATEGORIES } from "@/lib/issue-constants";
 import { getCityMapConfig } from "@/lib/city-map";
 import { resolveBrowserLocation, watchBrowserLocation } from "@/lib/browser-location";
@@ -46,7 +45,6 @@ export default function ReportForm() {
     cityKey: "",
     locationAccuracy: 0,
   });
-  let [locationMessage, setLocationMessage] = useState("Fetching your location...");
   let [error, setError] = useState("");
   let [success, setSuccess] = useState("");
   let [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +52,7 @@ export default function ReportForm() {
   let [locationMode, setLocationMode] = useState("gps");
   let [toasts, setToasts] = useState([]);
   let toastCounterRef = useRef(0);
+  let locationModeRef = useRef("gps");
   let hasReliableGps = Number(form.locationAccuracy || 0) > 0 && Number(form.locationAccuracy || 0) <= 3000;
 
   function dismissToast(toastId) {
@@ -87,7 +86,6 @@ export default function ReportForm() {
     try {
       setIsLocating(true);
       setError("");
-      setLocationMessage("Checking GPS and confirming your city...");
 
       let location = await resolveBrowserLocation();
 
@@ -101,14 +99,10 @@ export default function ReportForm() {
           locationAccuracy: location.accuracy,
         };
       });
+      locationModeRef.current = "gps";
       setLocationMode("gps");
-      setLocationMessage(function buildGpsMessage() {
-        let baseMessage = `Location locked near ${location.label} (${location.accuracy}m accuracy).`;
-
-        return location.note ? `${baseMessage} ${location.note}` : baseMessage;
-      });
     } catch (locationError) {
-      setLocationMessage(`${locationError.message} Click the map below to choose the issue spot.`);
+      setError(locationError.message);
     } finally {
       setIsLocating(false);
     }
@@ -124,18 +118,12 @@ export default function ReportForm() {
           let currentAccuracy = Number(currentForm.locationAccuracy || 0);
           let nextAccuracy = Number(location.accuracy || 0);
           let shouldReplace =
-            locationMode !== "manual" &&
+            locationModeRef.current !== "manual" &&
             (!currentForm.lat || !currentAccuracy || (nextAccuracy > 0 && nextAccuracy < currentAccuracy));
 
           if (!shouldReplace) {
             return currentForm;
           }
-
-          setLocationMessage(function buildWatchMessage() {
-            let baseMessage = `GPS refined to ${location.label} (${Math.max(1, nextAccuracy)}m accuracy).`;
-
-            return location.note ? `${baseMessage} ${location.note}` : baseMessage;
-          });
 
           return {
             ...currentForm,
@@ -156,7 +144,7 @@ export default function ReportForm() {
       window.clearTimeout(timeoutId);
       stopWatching();
     };
-  }, [locationMode]);
+  }, []);
 
   function updateField(event) {
     let field = event.target.name;
@@ -172,6 +160,7 @@ export default function ReportForm() {
 
   function handleManualLocationSelect(location) {
     setError("");
+    locationModeRef.current = "manual";
     setLocationMode("manual");
     setForm(function applyManualLocation(currentForm) {
       return {
@@ -183,7 +172,6 @@ export default function ReportForm() {
         locationAccuracy: location.locationAccuracy,
       };
     });
-    setLocationMessage(`Manual location selected for ${location.label}.`);
   }
 
   async function handleImageChange(event) {
@@ -206,19 +194,6 @@ export default function ReportForm() {
     }
   }
 
-  function handleTranscript(transcript) {
-    setForm(function applyTranscript(currentForm) {
-      let nextDescription = currentForm.description
-        ? `${currentForm.description} ${transcript}`.trim()
-        : transcript;
-
-      return {
-        ...currentForm,
-        description: nextDescription,
-      };
-    });
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -234,6 +209,10 @@ export default function ReportForm() {
 
       if (!category) {
         throw new Error("Please choose a category or enter a custom type.");
+      }
+
+      if (!form.image) {
+        throw new Error("Please upload a photo before submitting.");
       }
 
       let response = await fetch("/api/issues", {
@@ -324,7 +303,7 @@ export default function ReportForm() {
                       Click to upload or drag and drop
                     </p>
                     <p className="mt-1 text-sm font-medium text-slate-400">
-                      JPG, PNG up to 10MB
+                      Required. JPG, PNG up to 10MB
                     </p>
                   </div>
                   <span className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white">
@@ -334,35 +313,10 @@ export default function ReportForm() {
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
+                    required
                     className="hidden"
                   />
                 </label>
-              </div>
-
-              <div className="rounded-3xl border border-white/70 bg-white/92 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] transition hover:shadow-[0_28px_70px_rgba(15,23,42,0.10)]">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">Voice Reporter</p>
-                    <p className="mt-1 text-sm font-medium text-slate-500">
-                      {locationMessage}
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] ${
-                      hasReliableGps
-                        ? "bg-emerald-50 text-emerald-600"
-                        : "bg-amber-50 text-amber-600"
-                    }`}
-                  >
-                    {hasReliableGps ? "GPS Stable" : "Needs Review"}
-                  </span>
-                </div>
-                <p className="mt-3 text-xs font-medium text-slate-400">
-                  Low-confidence GPS should be adjusted on the map before submitting.
-                </p>
-                <div className="mt-4">
-                  <VoiceInput onTranscript={handleTranscript} />
-                </div>
               </div>
 
               {form.image ? (
@@ -483,6 +437,7 @@ export default function ReportForm() {
                         <button
                           type="button"
                           onClick={function detectAgain() {
+                            locationModeRef.current = "gps";
                             setLocationMode("gps");
                             captureLocation();
                           }}
@@ -559,7 +514,7 @@ export default function ReportForm() {
 
                   <button
                     type="submit"
-                    disabled={isSubmitting || isLocating || !form.cityKey}
+                    disabled={isSubmitting || isLocating || !form.cityKey || !form.image}
                     className="w-full rounded-2xl bg-blue-600 py-4 text-base font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSubmitting ? "Submitting Report..." : "Submit Report"}

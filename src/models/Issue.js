@@ -64,7 +64,8 @@ let issueSchema = new mongoose.Schema(
     },
     image: {
       type: String,
-      default: "",
+      required: true,
+      trim: true,
     },
     source: {
       type: String,

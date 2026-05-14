@@ -18,25 +18,20 @@ export default async function connectToDatabase() {
   }
 
   if (!cached.promise) {
-    // Connection options optimized for MongoDB Atlas
     let connectionOptions = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 15000,
+      family: 4,
     };
 
-    // Add Atlas-specific options if using Atlas
-    if (mongodbUri.includes('mongodb+srv://') || mongodbUri.includes('mongodb.net')) {
+    if (mongodbUri.includes("mongodb+srv://") || mongodbUri.includes("mongodb.net")) {
       connectionOptions = {
         ...connectionOptions,
-        serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-        socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-        maxPoolSize: 10, // Maintain up to 10 socket connections
-        serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-        socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-        family: 4, // Use IPv4, skip trying IPv6
+        maxPoolSize: 10,
       };
     }
 
-    // Reuse a single connection across hot reloads during local development.
     cached.promise = mongoose.connect(mongodbUri, connectionOptions);
   }
 

@@ -8,6 +8,22 @@ import ToastStack from "./ToastStack";
 import { buildAdminSummary } from "@/lib/issue-utils";
 import { getResponseErrorMessage, readJsonResponse } from "@/lib/http";
 
+async function fetchWithTimeout(input, init = {}, timeoutMs = 7000) {
+  let controller = new AbortController();
+  let timeoutId = window.setTimeout(function abortRequest() {
+    controller.abort(new Error("Request timed out."));
+  }, timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 export default function AdminClient() {
   let [issues, setIssues] = useState([]);
   let [isLoading, setIsLoading] = useState(true);
@@ -44,7 +60,7 @@ export default function AdminClient() {
   }
 
   async function requestIssues() {
-    let response = await fetch("/api/issues", {
+    let response = await fetchWithTimeout("/api/issues", {
       cache: "no-store",
     });
     let payload = await readJsonResponse(response);
