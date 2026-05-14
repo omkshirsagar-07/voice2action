@@ -252,6 +252,7 @@ export default function MapExperienceClient() {
   let [isLoading, setIsLoading] = useState(true);
   let [isSubmitting, setIsSubmitting] = useState(false);
   let [error, setError] = useState("");
+  let [currentUser, setCurrentUser] = useState(null);
   let [search, setSearch] = useState("");
   let [category, setCategory] = useState("All");
   let [status, setStatus] = useState("All");
@@ -262,27 +263,10 @@ export default function MapExperienceClient() {
   let [locationMessage, setLocationMessage] = useState(
     `Centered on ${cityMap.name}, Maharashtra`
   );
-  let [votedIssueIds, setVotedIssueIds] = useState(function getStoredVotes() {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    let storedVotes = window.localStorage.getItem("voice2action-votes");
-
-    if (!storedVotes) {
-      return [];
-    }
-
-    try {
-      let parsedVotes = JSON.parse(storedVotes);
-      return Array.isArray(parsedVotes) ? parsedVotes : [];
-    } catch (_storageError) {
-      return [];
-    }
-  });
   let [toasts, setToasts] = useState([]);
   let toastCounterRef = useRef(0);
   let deferredSearch = useDeferredValue(search);
+  let votedIssueIds = currentUser?.votedIssueIds || [];
 
   function dismissToast(toastId) {
     setToasts(function removeToast(currentToasts) {
@@ -366,6 +350,30 @@ export default function MapExperienceClient() {
       isActive = false;
     };
   }, [fetchIssues]);
+
+  useEffect(function loadCurrentUser() {
+    let isActive = true;
+
+    fetch("/api/auth/me", {
+      cache: "no-store",
+    })
+      .then(async function parseCurrentUser(response) {
+        let payload = await readJsonResponse(response);
+
+        if (isActive) {
+          setCurrentUser(payload.user || null);
+        }
+      })
+      .catch(function ignoreCurrentUserError() {
+        if (isActive) {
+          setCurrentUser(null);
+        }
+      });
+
+    return function cleanupCurrentUserRequest() {
+      isActive = false;
+    };
+  }, []);
 
   useEffect(
     function pollFreshIssues() {
@@ -487,6 +495,14 @@ export default function MapExperienceClient() {
   }
 
   async function handleVote(issueId) {
+    if (!currentUser) {
+      pushToast("Sign in required", "Please sign in before voting.");
+      window.setTimeout(function redirectToSignIn() {
+        window.location.href = "/sign-in";
+      }, 500);
+      return;
+    }
+
     if (votedIssueIds.includes(issueId)) {
       pushToast("Already voted", "You already voted for this issue.");
       return;
@@ -511,16 +527,27 @@ export default function MapExperienceClient() {
             return secondIssue.priorityScore - firstIssue.priorityScore;
           });
       });
+      setCurrentUser(function updateCurrentUser(currentValue) {
+        if (!currentValue) {
+          return currentValue;
+        }
 
-      setVotedIssueIds(function updateVotes(currentVotes) {
-        let nextVotes = currentVotes.concat(issueId);
-        window.localStorage.setItem("voice2action-votes", JSON.stringify(nextVotes));
-        return nextVotes;
+        return {
+          ...currentValue,
+          votedIssueIds: payload.votedIssueIds || currentValue.votedIssueIds.concat(issueId),
+        };
       });
       setSelectedIssueId(issueId);
       pushToast("Vote added", "This issue has been upvoted.");
     } catch (voteError) {
       setError(voteError.message);
+
+      if (voteError.message === "Please sign in to vote.") {
+        pushToast("Sign in required", "Please sign in before voting.");
+        window.setTimeout(function redirectToSignIn() {
+          window.location.href = "/sign-in";
+        }, 500);
+      }
     }
   }
 

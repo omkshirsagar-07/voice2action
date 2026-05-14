@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import LoginPromptModal from "./LoginPromptModal";
 
 let navigationItems = [
   { href: "/", label: "Home", icon: "home" },
@@ -80,9 +82,86 @@ export default function AppShell({
   showMobileHeader = true,
 }) {
   let pathname = usePathname();
+  let [currentUser, setCurrentUser] = useState(null);
+  let [isAuthReady, setIsAuthReady] = useState(false);
+  let [isSigningOut, setIsSigningOut] = useState(false);
+  let [hasDismissedLoginPrompt, setHasDismissedLoginPrompt] = useState(function getDismissedLoginPromptState() {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return Boolean(window.sessionStorage.getItem("voice2action-login-prompt-dismissed"));
+  });
+
+  useEffect(function loadCurrentUser() {
+    let isActive = true;
+
+    fetch("/api/auth/me", {
+      cache: "no-store",
+    })
+      .then(async function parseResponse(response) {
+        let payload = await response.json().catch(function ignoreParseError() {
+          return {};
+        });
+
+        if (!isActive) {
+          return;
+        }
+
+        setCurrentUser(payload.user || null);
+        setIsAuthReady(true);
+      })
+      .catch(function ignoreAuthError() {
+        if (isActive) {
+          setCurrentUser(null);
+          setIsAuthReady(true);
+        }
+      });
+
+    return function cleanupUserRequest() {
+      isActive = false;
+    };
+  }, [pathname]);
+
+  async function handleLogout() {
+    try {
+      setIsSigningOut(true);
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+    } finally {
+      setCurrentUser(null);
+      window.location.href = "/sign-in";
+    }
+  }
+
+  function handleCloseLoginPrompt() {
+    setHasDismissedLoginPrompt(true);
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("voice2action-login-prompt-dismissed", "true");
+    }
+  }
+
+  function handleSignedIn(user) {
+    setCurrentUser(user);
+    setHasDismissedLoginPrompt(false);
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem("voice2action-login-prompt-dismissed");
+    }
+  }
+
+  let showLoginPrompt = isAuthReady && !currentUser && !hasDismissedLoginPrompt;
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] lg:flex">
+      <LoginPromptModal
+        isOpen={showLoginPrompt}
+        onClose={handleCloseLoginPrompt}
+        onSignedIn={handleSignedIn}
+      />
+
       <aside className="hidden w-[244px] shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
         <div className="border-b border-slate-100 p-6">
           <div className="flex items-center gap-3">
@@ -113,15 +192,44 @@ export default function AppShell({
         </nav>
 
         <div className="border-t border-slate-100 p-4">
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M10 17 5 12l5-5M5 12h10M15 5h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span>Logout</span>
-          </button>
+          {currentUser ? (
+            <div className="space-y-3">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                  Signed in
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">{currentUser.name}</p>
+                <p className="text-xs text-slate-500">{currentUser.email}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isSigningOut}
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M10 17 5 12l5-5M5 12h10M15 5h3a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span>{isSigningOut ? "Signing out..." : "Logout"}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Link
+                href="/sign-in"
+                className="flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.24)] transition hover:bg-blue-700"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/sign-up"
+                className="flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Create account
+              </Link>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -136,10 +244,10 @@ export default function AppShell({
                 <p className="mt-1 text-lg font-bold text-slate-900">{title}</p>
               </div>
               <Link
-                href="/report"
+                href={currentUser ? "/report" : "/sign-in"}
                 className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
               >
-                Report
+                {currentUser ? "Report" : "Sign in"}
               </Link>
             </div>
           </header>
@@ -178,7 +286,7 @@ export default function AppShell({
             </Link>
 
             <Link
-              href="/report"
+              href={currentUser ? "/report" : "/sign-in"}
               className="-mt-8 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-2xl font-semibold text-white shadow-lg shadow-blue-600/35"
             >
               +
