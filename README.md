@@ -188,13 +188,6 @@ Voice2Action focuses on:
 The project aims to create a trustworthy digital ecosystem for civic participation.
 
 
----
-
-# 🌟 Final Statement
-
-Voice2Action is more than just a web application — it is a step toward smarter governance, stronger communities, and digital democracy. By empowering citizens to actively participate in solving local problems, the platform creates a collaborative ecosystem where every voice truly matters.
-
----
 
 # ❤️ Built with Passion for Smarter Communities
 
