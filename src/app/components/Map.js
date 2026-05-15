@@ -13,6 +13,18 @@ let DynamicMapClient = dynamic(() => import("./MapClient"), {
   },
 });
 
-export default function Map({ issues, currentLocation }) {
-  return <DynamicMapClient issues={issues} currentLocation={currentLocation} />;
+export default function Map({
+  issues,
+  currentLocation,
+  className = "h-full min-h-[320px]",
+  showHeatmap = false,
+}) {
+  return (
+    <DynamicMapClient
+      issues={issues}
+      currentLocation={currentLocation}
+      className={className}
+      showHeatmap={showHeatmap}
+    />
+  );
 }

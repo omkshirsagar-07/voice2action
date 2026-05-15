@@ -8,7 +8,6 @@ import LoginPromptModal from "./LoginPromptModal";
 let navigationItems = [
   { href: "/", label: "Home", icon: "home" },
   { href: "/map", label: "Map View", icon: "map" },
-  { href: "/admin", label: "Admin Dashboard", icon: "shield" },
   { href: "/report", label: "Report Issue", icon: "plus" },
 ];
 
@@ -33,14 +32,6 @@ function NavigationIcon({ icon, tone = "default" }) {
       <svg aria-hidden="true" viewBox="0 0 24 24" className={`h-5 w-5 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2V6Z" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M9 4v14M15 6v14" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  if (icon === "shield") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24" className={`h-5 w-5 ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path d="M12 3 6 6v5c0 4.6 2.8 7.8 6 10 3.2-2.2 6-5.4 6-10V6l-6-3Z" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -130,8 +121,9 @@ export default function AppShell({
         method: "POST",
       });
     } finally {
+      let nextPath = currentUser?.role === "admin" ? "/admin/login" : "/sign-in";
       setCurrentUser(null);
-      window.location.href = "/sign-in";
+      window.location.href = nextPath;
     }
   }
 
@@ -196,10 +188,14 @@ export default function AppShell({
             <div className="space-y-3">
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                  Signed in
+                  {currentUser.role === "admin" ? "Admin session" : "Signed in"}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-slate-900">{currentUser.name}</p>
-                <p className="text-xs text-slate-500">{currentUser.email}</p>
+                <p className="text-xs text-slate-500">
+                  {currentUser.role === "admin"
+                    ? `${currentUser.departmentLabel} department`
+                    : currentUser.email}
+                </p>
               </div>
 
               <button
@@ -297,19 +293,10 @@ export default function AppShell({
               Alerts
             </div>
 
-            <Link
-              href="/admin"
-              className={`flex flex-col items-center gap-1 text-[11px] font-medium ${
-                pathname === "/admin" ? "text-blue-600" : "text-slate-400"
-              }`}
-            >
-              <span
-                className={`h-5 w-5 rounded-md ${
-                  pathname === "/admin" ? "bg-blue-600" : "bg-slate-300"
-                }`}
-              />
-              Admin
-            </Link>
+            <div className="flex flex-col items-center gap-1 text-[11px] font-medium text-slate-400">
+              <span className="h-5 w-5 rounded-md bg-slate-300" />
+              Profile
+            </div>
           </div>
         </nav>
       </div>

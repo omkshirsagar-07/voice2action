@@ -43,16 +43,24 @@ function AuthFooter({ mode }) {
 
   if (mode === "signin") {
     return (
-      <div className="flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/forgot-password" className="font-semibold text-blue-600 hover:text-blue-700">
-          Forgot password?
-        </Link>
-        <p>
-          No account yet?{" "}
-          <Link href="/sign-up" className="font-semibold text-blue-600 hover:text-blue-700">
-            Sign up
+      <div className="space-y-3 text-sm text-slate-500">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Link href="/forgot-password" className="font-semibold text-blue-600 hover:text-blue-700">
+            Forgot password?
           </Link>
-        </p>
+          <p>
+            No account yet?{" "}
+            <Link href="/sign-up" className="font-semibold text-blue-600 hover:text-blue-700">
+              Sign up
+            </Link>
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="font-medium text-slate-600">Admin access</p>
+          <Link href="/admin/login" className="mt-1 inline-flex font-semibold text-emerald-700 hover:text-emerald-800">
+            Open admin login
+          </Link>
+        </div>
       </div>
     );
   }

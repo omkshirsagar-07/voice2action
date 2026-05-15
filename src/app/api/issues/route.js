@@ -1,4 +1,5 @@
 import connectToDatabase from "@/lib/mongodb";
+import { getCurrentUser } from "@/lib/auth";
 import {
   calculatePriorityScore,
   detectCategory,
@@ -14,8 +15,10 @@ import {
 } from "@/lib/city-map";
 
 import {
+  getDepartmentCategories,
   ISSUE_CATEGORIES,
   ISSUE_STATUSES,
+  normalizeAdminDepartment,
   normalizeIssueCategory,
   normalizeIssueStatus,
 } from "@/lib/issue-constants";
@@ -30,6 +33,7 @@ function buildIssueQueryFilters(searchParams) {
   let requestedCity = searchParams.get("city") || searchParams.get("cityKey");
   let requestedCategory = searchParams.get("category");
   let requestedStatus = searchParams.get("status");
+  let requestedDepartment = String(searchParams.get("department") || "").trim().toLowerCase();
   let requestedSearch = String(searchParams.get("search") || "").trim();
   let cityKey = normalizeCityKey(requestedCity);
   let query = cityKey ? { cityKey } : {};
@@ -40,6 +44,16 @@ function buildIssueQueryFilters(searchParams) {
 
   if (requestedStatus && ISSUE_STATUSES.includes(requestedStatus)) {
     query.status = requestedStatus;
+  }
+
+  if (requestedDepartment) {
+    let departmentCategories = getDepartmentCategories(requestedDepartment);
+
+    if (departmentCategories.length) {
+      query.category = {
+        $in: departmentCategories,
+      };
+    }
   }
 
   if (requestedSearch) {
@@ -68,6 +82,7 @@ function buildIssueQueryFilters(searchParams) {
   return {
     cityKey,
     query,
+    requestedDepartment,
     requestedSearch,
   };
 }
@@ -77,8 +92,14 @@ function doesSampleIssueMatchQuery(issue, query, requestedSearch) {
     return false;
   }
 
-  if (query.category && issue.category !== query.category) {
-    return false;
+  if (query.category) {
+    if (typeof query.category === "string" && issue.category !== query.category) {
+      return false;
+    }
+
+    if (Array.isArray(query.category.$in) && !query.category.$in.includes(issue.category)) {
+      return false;
+    }
   }
 
   if (query.status && issue.status !== query.status) {
@@ -123,7 +144,39 @@ function buildSampleIssuesResponse(query, requestedSearch) {
 
 export async function GET(request) {
   let { searchParams } = new URL(request.url);
-  let { cityKey, query, requestedSearch } = buildIssueQueryFilters(searchParams);
+  let { cityKey, query, requestedDepartment, requestedSearch } = buildIssueQueryFilters(searchParams);
+  let currentUser = await getCurrentUser();
+
+  if (currentUser?.role === "admin" && currentUser.adminType !== "main" && !requestedDepartment) {
+    query.category = {
+      $in: getDepartmentCategories(currentUser.department),
+    };
+  }
+
+  if (requestedDepartment) {
+    let normalizedDepartment = normalizeAdminDepartment(requestedDepartment);
+
+    if (currentUser?.role !== "admin") {
+      return Response.json(
+        {
+          message: "Admin access is required for department issue feeds.",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (
+      currentUser.adminType !== "main" &&
+      normalizeAdminDepartment(currentUser.department) !== normalizedDepartment
+    ) {
+      return Response.json(
+        {
+          message: "You can only view issues assigned to your own department.",
+        },
+        { status: 403 }
+      );
+    }
+  }
 
   try {
     await connectToDatabase();
