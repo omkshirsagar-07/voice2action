@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import connectToDatabase from "@/lib/mongodb";
+import { getDepartmentLabel, normalizeAdminDepartment } from "@/lib/issue-constants";
+import AdminUser from "@/models/AdminUser";
 import User from "@/models/User";
 
 export const AUTH_COOKIE_NAME = "voice2action-session";
@@ -81,12 +83,58 @@ export function sanitizeUser(user) {
     id: String(user._id),
     name: user.name,
     email: user.email,
+    role: "user",
+    adminId: "",
+    department: "",
+    departmentLabel: "",
     votedIssueIds: Array.isArray(user.votedIssueIds)
       ? user.votedIssueIds.map(function mapVoteId(issueId) {
           return String(issueId);
         })
       : [],
   };
+}
+
+export function sanitizeAdmin(admin) {
+  if (!admin) {
+    return null;
+  }
+
+  let isMainAdmin = admin.roleType === "main";
+  let department = isMainAdmin ? "" : normalizeAdminDepartment(admin.department);
+
+  return {
+    id: String(admin._id),
+    name: admin.name,
+    email: admin.email,
+    role: "admin",
+    adminId: String(admin._id),
+    adminType: admin.roleType,
+    isMainAdmin,
+    department,
+    departmentLabel: isMainAdmin ? "All departments" : getDepartmentLabel(department),
+    votedIssueIds: [],
+  };
+}
+
+export async function ensureMainAdminExists() {
+  await connectToDatabase();
+
+  let email = "omrk@gmail.com";
+  let existingAdmin = await AdminUser.findOne({ email }).select("_id").lean();
+
+  if (existingAdmin) {
+    return existingAdmin;
+  }
+
+  return AdminUser.create({
+    name: "Main Admin",
+    email,
+    passwordHash: hashPassword("om1234"),
+    roleType: "main",
+    department: "",
+    createdBy: email,
+  });
 }
 
 export function validatePasswordRules(password) {
@@ -101,7 +149,7 @@ export async function createAuthSession(user) {
   let cookieStore = await cookies();
   let safeUser = sanitizeUser(user);
 
-  cookieStore.set(AUTH_COOKIE_NAME, createSessionValue({ userId: safeUser.id }), {
+  cookieStore.set(AUTH_COOKIE_NAME, createSessionValue({ role: "user", userId: safeUser.id }), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -110,6 +158,28 @@ export async function createAuthSession(user) {
   });
 
   return safeUser;
+}
+
+export async function createAdminAuthSession(admin) {
+  let cookieStore = await cookies();
+  let safeAdmin = sanitizeAdmin(admin);
+
+  cookieStore.set(
+    AUTH_COOKIE_NAME,
+    createSessionValue({
+      role: "admin",
+      adminId: safeAdmin.id,
+    }),
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: AUTH_COOKIE_MAX_AGE,
+    }
+  );
+
+  return safeAdmin;
 }
 
 export async function clearAuthSession() {
@@ -122,7 +192,20 @@ export async function getCurrentUser() {
   let sessionCookie = cookieStore.get(AUTH_COOKIE_NAME)?.value;
   let session = readSessionValue(sessionCookie);
 
-  if (!session?.userId) {
+  if (!session) {
+    return null;
+  }
+
+  if (session.role === "admin") {
+    await connectToDatabase();
+    let admin = await AdminUser.findById(session.adminId)
+      .select("name email department roleType")
+      .lean();
+
+    return sanitizeAdmin(admin);
+  }
+
+  if (!session.userId) {
     return null;
   }
 
@@ -133,4 +216,21 @@ export async function getCurrentUser() {
     .lean();
 
   return sanitizeUser(user);
+}
+
+export async function authenticateAdmin(email, password) {
+  await ensureMainAdminExists();
+
+  let normalizedEmail = String(email || "").trim().toLowerCase();
+  let matchedAdmin = await AdminUser.findOne({ email: normalizedEmail });
+
+  if (!matchedAdmin) {
+    return null;
+  }
+
+  if (!verifyPassword(String(password || ""), matchedAdmin.passwordHash)) {
+    return null;
+  }
+
+  return matchedAdmin;
 }

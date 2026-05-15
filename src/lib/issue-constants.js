@@ -43,6 +43,37 @@ export let ISSUE_CATEGORY_META = {
   },
 };
 
+export let ADMIN_DEPARTMENT_META = {
+  garbage: {
+    label: "Garbage",
+    categories: ["Garbage"],
+  },
+  water: {
+    label: "Water",
+    categories: ["Water Leakage"],
+  },
+  roads: {
+    label: "Roads",
+    categories: ["Road Damage"],
+  },
+  electricity: {
+    label: "Electricity",
+    categories: ["Street Light"],
+  },
+  traffic: {
+    label: "Traffic",
+    categories: ["Traffic"],
+  },
+  drainage: {
+    label: "Drainage",
+    categories: ["Drainage"],
+  },
+  construction: {
+    label: "Construction",
+    categories: ["Construction"],
+  },
+};
+
 export let ISSUE_STATUS_META = {
   pending: {
     label: "Pending",
@@ -56,8 +87,10 @@ export let ISSUE_STATUS_META = {
 
 export let ISSUE_CATEGORIES = Object.keys(ISSUE_CATEGORY_META);
 export let ISSUE_STATUSES = Object.keys(ISSUE_STATUS_META);
+export let ADMIN_DEPARTMENTS = Object.keys(ADMIN_DEPARTMENT_META);
 export let DEFAULT_ISSUE_CATEGORY = "Garbage";
 export let DEFAULT_ISSUE_STATUS = "pending";
+export let DEFAULT_ADMIN_DEPARTMENT = "garbage";
 
 export function isValidIssueCategory(category) {
   return ISSUE_CATEGORIES.includes(category);
@@ -82,4 +115,24 @@ export function normalizeIssueStatus(status) {
   }
 
   return DEFAULT_ISSUE_STATUS;
+}
+
+export function normalizeAdminDepartment(department) {
+  let normalizedDepartment = String(department || "").trim().toLowerCase();
+
+  if (ADMIN_DEPARTMENTS.includes(normalizedDepartment)) {
+    return normalizedDepartment;
+  }
+
+  return DEFAULT_ADMIN_DEPARTMENT;
+}
+
+export function getDepartmentCategories(department) {
+  let normalizedDepartment = normalizeAdminDepartment(department);
+  return ADMIN_DEPARTMENT_META[normalizedDepartment]?.categories || [];
+}
+
+export function getDepartmentLabel(department) {
+  let normalizedDepartment = normalizeAdminDepartment(department);
+  return ADMIN_DEPARTMENT_META[normalizedDepartment]?.label || ADMIN_DEPARTMENT_META[DEFAULT_ADMIN_DEPARTMENT].label;
 }
