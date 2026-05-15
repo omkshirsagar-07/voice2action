@@ -33,6 +33,118 @@ Voice2Action is a location-based civic engagement platform that empowers citizen
 
 ---
 
+# 🧩 Complete Issue Reporting & Processing Flowchart
+
+```text
+┌──────────────────────────────┐
+│    USER OPENS REPORT PAGE    │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│      FILL ISSUE DETAILS      │
+│                              │
+│  • Title                     │
+│  • Description               │
+│  • Category                  │
+│  • Image Upload              │
+│  • Voice Input               │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│      GET USER LOCATION       │
+│        (Browser GPS)         │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│       REVERSE GEOCODING      │
+│      (Area + City Name)      │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│        SEND DATA TO API      │
+│         /api/issues          │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│         VALIDATE DATA        │
+│                              │
+│  • Required Fields           │
+│  • Image Size                │
+│  • City Bounds               │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│    CHECK DUPLICATE ISSUES    │
+└──────────────────────────────┘
+          │             │
+         YES            NO
+          │             │
+          ▼             ▼
+┌───────────────┐   ┌──────────────────────────────┐
+│ RETURN ERROR  │   │ DETECT CATEGORY & PRIORITY  │
+└───────────────┘   └──────────────────────────────┘
+                                │
+                                ▼
+                 ┌──────────────────────────────┐
+                 │       SAVE ISSUE TO DB       │
+                 │           MongoDB            │
+                 └──────────────────────────────┘
+                                │
+                                ▼
+                 ┌──────────────────────────────┐
+                 │        RETURN SUCCESS        │
+                 └──────────────────────────────┘
+                                │
+                                ▼
+                 ┌──────────────────────────────┐
+                 │   ISSUE APPEARS ON MAP &     │
+                 │   COMMUNITY CAN VOTE         │
+                 └──────────────────────────────┘
+```
+# 🗺️ Map System Flowchart
+
+```text
+┌──────────────────────────────┐
+│        USER OPENS MAP        │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│   FETCH ISSUES FROM DB/API   │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│       LOAD LEAFLET MAP       │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│     DISPLAY MARKERS &        │
+│          HEATMAP             │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│         APPLY FILTERS        │
+│                              │
+│  • Category                  │
+│  • Status                    │
+└──────────────────────────────┘
+                │
+                ▼
+┌──────────────────────────────┐
+│     SHOW ISSUE POPUPS &      │
+│           DETAILS            │
+└──────────────────────────────┘
+```
+
 # 🧠 Why Voice2Action Matters
 
 In many cities, citizens struggle to communicate local problems effectively with authorities. Traditional complaint systems are often slow, disconnected, and lack transparency.
