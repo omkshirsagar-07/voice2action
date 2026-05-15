@@ -99,23 +99,23 @@ function IssueDetailsPanel({ issue, isVoteDisabled, onVote, onRefresh }) {
   if (!issue) {
     return (
       <aside className="flex h-full min-h-[18rem] flex-col border-t border-slate-200 bg-white lg:min-h-screen lg:border-l lg:border-t-0">
-        <div className="border-b border-slate-200 px-6 py-6">
-          <h2 className="text-[28px] font-bold tracking-tight text-slate-900">Issue Details</h2>
-          <p className="mt-2 text-sm font-medium text-slate-500">
+        <div className="border-b border-slate-200 px-4 sm:px-6 py-4 sm:py-6">
+          <h2 className="text-xl sm:text-[28px] font-bold tracking-tight text-slate-900">Issue Details</h2>
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-slate-500">
             Click on a marker to view details
           </p>
         </div>
 
-        <div className="flex flex-1 items-center justify-center px-6 py-10">
-          <div className="max-w-sm rounded-[28px] border border-dashed border-slate-200 bg-slate-50/80 px-6 py-10 text-center">
-            <p className="text-base font-semibold text-slate-700">No issue selected</p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+        <div className="flex flex-1 items-center justify-center px-4 sm:px-6 py-8 sm:py-10">
+          <div className="max-w-sm rounded-[20px] sm:rounded-[28px] border border-dashed border-slate-200 bg-slate-50/80 px-4 sm:px-6 py-8 sm:py-10 text-center">
+            <p className="text-sm sm:text-base font-semibold text-slate-700">No issue selected</p>
+            <p className="mt-2 text-xs sm:text-sm leading-6 text-slate-500">
               Pick any marker on the map to inspect its image, vote count, status, and location.
             </p>
             <button
               type="button"
               onClick={onRefresh}
-              className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+              className="mt-4 sm:mt-5 rounded-2xl border border-slate-200 bg-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
             >
               Refresh map data
             </button>
@@ -134,17 +134,17 @@ function IssueDetailsPanel({ issue, isVoteDisabled, onVote, onRefresh }) {
 
   return (
     <aside className="flex h-full flex-col border-t border-slate-200 bg-white lg:min-h-screen lg:border-l lg:border-t-0">
-      <div className="border-b border-slate-200 px-6 py-6">
-        <h2 className="text-[28px] font-bold tracking-tight text-slate-900">Issue Details</h2>
-        <p className="mt-2 text-sm font-medium text-slate-500">
+      <div className="border-b border-slate-200 px-4 sm:px-6 py-4 sm:py-6">
+        <h2 className="text-xl sm:text-[28px] font-bold tracking-tight text-slate-900">Issue Details</h2>
+        <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-slate-500">
           Live marker context and quick action
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-5">
-        <article className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
-          <div className="flex gap-4">
-            <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[20px] bg-slate-100">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 sm:py-5">
+        <article className="rounded-[20px] sm:rounded-[28px] border border-slate-200 bg-white p-3 sm:p-4 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
+          <div className="flex gap-3 sm:gap-4">
+            <div className="relative h-24 w-24 sm:h-28 sm:w-28 shrink-0 overflow-hidden rounded-[16px] sm:rounded-[20px] bg-slate-100">
               {issue.image ? (
                 <Image
                   src={issue.image}
@@ -162,14 +162,14 @@ function IssueDetailsPanel({ issue, isVoteDisabled, onVote, onRefresh }) {
             </div>
 
             <div className="min-w-0 flex-1">
-              <h3 className="text-[31px] font-bold leading-[1.05] tracking-tight text-slate-900">
+              <h3 className="text-lg sm:text-[31px] font-bold leading-[1.05] tracking-tight text-slate-900">
                 {issue.title}
               </h3>
-              <div className="mt-3 flex items-center gap-2 text-sm font-medium text-slate-500">
+              <div className="mt-2 sm:mt-3 flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-500">
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
-                  className="h-4 w-4"
+                  className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.8"
@@ -186,32 +186,32 @@ function IssueDetailsPanel({ issue, isVoteDisabled, onVote, onRefresh }) {
             </div>
           </div>
 
-          <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <div className="mt-3 sm:mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 sm:pt-4">
             <span
-              className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] ${statusClass}`}
+              className={`rounded-full px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-bold uppercase tracking-[0.14em] ${statusClass}`}
             >
               {statusMeta.label}
             </span>
-            <span className="text-sm font-medium text-slate-400">
+            <span className="text-xs sm:text-sm font-medium text-slate-400">
               {formatRelativeTime(issue.createdAt)}
             </span>
           </div>
 
-          <p className="mt-4 text-sm leading-7 text-slate-600">{issue.description}</p>
+          <p className="mt-3 sm:mt-4 text-xs sm:text-sm leading-6 sm:leading-7 text-slate-600">{issue.description}</p>
 
-          <div className="mt-5 flex items-center justify-between gap-3 rounded-[22px] bg-slate-50 px-4 py-4">
-            <div className="flex items-center gap-3">
+          <div className="mt-3 sm:mt-5 flex items-center justify-between gap-2 sm:gap-3 rounded-[18px] sm:rounded-[22px] bg-slate-50 px-3 sm:px-4 py-3 sm:py-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="flex -space-x-2">
                 {voteDots.map(function renderDot(dot) {
                   return (
                     <span
                       key={dot.id}
-                      className={`inline-flex h-9 w-9 rounded-full border-2 border-white ${dot.color}`}
+                      className={`inline-flex h-7 w-7 sm:h-9 sm:w-9 rounded-full border-2 border-white text-xs sm:text-sm ${dot.color}`}
                     />
                   );
                 })}
               </div>
-              <span className="text-sm font-semibold text-slate-500">+{issue.votes} votes</span>
+              <span className="text-xs sm:text-sm font-semibold text-slate-500">+{issue.votes} votes</span>
             </div>
 
             <button
@@ -220,7 +220,7 @@ function IssueDetailsPanel({ issue, isVoteDisabled, onVote, onRefresh }) {
                 onVote(issue.id);
               }}
               disabled={isVoteDisabled}
-              className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+              className={`inline-flex items-center gap-1.5 sm:gap-2 rounded-2xl px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition ${
                 isVoteDisabled
                   ? "cursor-not-allowed bg-slate-200 text-slate-400"
                   : "bg-blue-50 text-blue-600 hover:bg-blue-100"
@@ -229,7 +229,7 @@ function IssueDetailsPanel({ issue, isVoteDisabled, onVote, onRefresh }) {
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                className="h-4 w-4"
+                className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -599,23 +599,25 @@ export default function MapExperienceClient() {
               {locationMessage}
             </div>
 
-            <div className="absolute right-6 top-24 z-[600] flex flex-col gap-3">
+            <div className="absolute right-4 sm:right-6 top-24 z-[600] flex flex-col gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={handleLocateMe}
-                className="inline-flex h-14 items-center justify-center rounded-[22px] bg-white/92 px-4 text-sm font-semibold text-slate-700 shadow-[0_18px_45px_rgba(15,23,42,0.10)] backdrop-blur-xl transition hover:bg-white"
+                className="inline-flex h-12 sm:h-14 items-center justify-center rounded-[18px] sm:rounded-[22px] bg-white/92 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-slate-700 shadow-[0_18px_45px_rgba(15,23,42,0.10)] backdrop-blur-xl transition hover:bg-white"
               >
-                Locate Me
+                <span className="hidden sm:inline">Locate Me</span>
+                <span className="sm:hidden">Locate</span>
               </button>
               <Link
                 href="/report"
-                className="inline-flex h-14 items-center justify-center rounded-[22px] bg-blue-600 px-4 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(37,99,235,0.28)] transition hover:bg-blue-700"
+                className="inline-flex h-12 sm:h-14 items-center justify-center rounded-[18px] sm:rounded-[22px] bg-blue-600 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-white shadow-[0_18px_45px_rgba(37,99,235,0.28)] transition hover:bg-blue-700"
               >
-                Report Issue
+                <span className="hidden sm:inline">Report Issue</span>
+                <span className="sm:hidden">Report</span>
               </Link>
             </div>
 
-            <div className="absolute bottom-6 left-6 z-[600] max-w-[15rem]">
+            <div className="absolute bottom-6 left-4 sm:left-6 z-[600] max-w-[15rem] hidden md:block">
               <StatusLegend issues={filteredIssues} />
             </div>
 
@@ -642,12 +644,12 @@ export default function MapExperienceClient() {
                   setSelectedPoint(nextPoint);
                 }}
                 showHeatmap={showHeatmap}
-                className="h-[calc(100vh-5rem)] rounded-none border-0 bg-transparent lg:h-screen"
+                className="h-[calc(100vh-5rem)] sm:h-[calc(100vh-5rem)] lg:h-screen rounded-none border-0 bg-transparent"
               />
             )}
 
             {selectedPoint ? (
-              <div className="absolute bottom-6 left-1/2 z-[600] -translate-x-1/2 rounded-full bg-slate-950/85 px-4 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur">
+              <div className="absolute bottom-4 sm:bottom-6 left-1/2 z-[600] -translate-x-1/2 rounded-full bg-slate-950/85 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-white shadow-2xl backdrop-blur">
                 New report pin placed. Finish it in the form below.
               </div>
             ) : null}
